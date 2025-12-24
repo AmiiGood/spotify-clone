@@ -8,6 +8,7 @@ import {
   VolumeMedium,
   VolumeSilenced,
 } from "@/icons/VolumeIcons";
+import { PlayerControls } from "./PlayerControls";
 
 const CurrentSong = ({ image, title, artists }) => {
   return (
@@ -117,9 +118,8 @@ const VolumeControl = () => {
 };
 
 export function Player() {
-  const { currentMusic, isPlaying, setIsPlaying, volume } = usePlayerStore(
-    (state) => state
-  );
+  const { currentMusic, isPlaying, setIsPlaying, volume, setCurrentMusic } =
+    usePlayerStore((state) => state);
   const audioRef = useRef();
 
   useEffect(() => {
@@ -142,13 +142,55 @@ export function Player() {
   }, [volume]);
 
   useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleEnded = () => {
+      const state = usePlayerStore.getState();
+      const { songs, song } = state.currentMusic;
+      const { repeatMode, isShuffle } = state;
+
+      if (!songs || songs.length === 0) return;
+
+      if (repeatMode === 2) {
+        audio.currentTime = 0;
+        audio.play();
+        return;
+      }
+
+      const currentIndex = songs.findIndex((s) => s.id === song?.id);
+      let nextSong;
+
+      if (isShuffle) {
+        let randomIndex;
+        do {
+          randomIndex = Math.floor(Math.random() * songs.length);
+        } while (randomIndex === currentIndex && songs.length > 1);
+        nextSong = songs[randomIndex];
+      } else {
+        nextSong = songs[currentIndex + 1];
+      }
+
+      if (nextSong) {
+        state.setCurrentMusic({ ...state.currentMusic, song: nextSong });
+      } else if (repeatMode === 1) {
+        state.setCurrentMusic({ ...state.currentMusic, song: songs[0] });
+      } else {
+        state.setIsPlaying(false);
+      }
+    };
+
+    audio.addEventListener("ended", handleEnded);
+    return () => audio.removeEventListener("ended", handleEnded);
+  }, []);
+
+  useEffect(() => {
     const { song, playlist } = currentMusic;
     const audio = audioRef.current;
 
     if (song && audio) {
       const src = `/music/${playlist?.id}/0${song.id}.mp3`;
 
-      // Solo cargar si es una canción diferente
       const currentSrc = audio.src;
       const newSrc = window.location.origin + src;
 
@@ -157,7 +199,6 @@ export function Player() {
         audio.volume = volume;
         audio.load();
 
-        // Marcar que debe reproducirse cuando esté lista
         audio.addEventListener(
           "canplay",
           () => {
@@ -170,7 +211,7 @@ export function Player() {
         );
       }
     }
-  }, [currentMusic]); // ✅ Solo currentMusic, sin isPlaying
+  }, [currentMusic]);
 
   const handleClick = () => {
     setIsPlaying(!isPlaying);
@@ -183,14 +224,7 @@ export function Player() {
       </div>
 
       <div className="grid place-content-center gap-4 flex-1 max-w-180.5">
-        <div className="flex justify-center flex-col items-center">
-          <button
-            className="bg-white rounded-full p-2 text-black cursor-pointer"
-            onClick={handleClick}
-          >
-            {isPlaying ? <Pause /> : <Play />}
-          </button>
-        </div>
+        <PlayerControls />
         <SongControl audio={audioRef} />
       </div>
 

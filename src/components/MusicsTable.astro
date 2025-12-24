@@ -11,9 +11,7 @@ const { songs } = Astro.props;
 
 <table class="table-auto text-left min-w-full divide-y divide-gray-500/20">
   <thead class="">
-    <tr
-      class="text-zinc-400 text-sm"
-    >
+    <tr class="text-zinc-400 text-sm">
       <th class="px-4 py-2 font-light">#</th>
       <th class="px-4 py-2 font-light">Título</th>
       <th class="px-4 py-2 font-light">Álbum</th>
@@ -24,15 +22,28 @@ const { songs } = Astro.props;
     <tr class="h-3"></tr>
     {
       songs.map((song, index) => (
-        <tr class="border-separate border-spacing-0 text-gray-300 text-sm font-light hover:bg-white/10 overflow-hidden transition duration-300">
-          <td class="px-4 py-2 rounded-tl-lg rounded-bl-lg w-6">{index + 1}</td>
+        <tr
+          class="border-separate border-spacing-0 text-gray-300 text-sm font-light hover:bg-white/10 overflow-hidden transition duration-300 cursor-pointer group"
+          data-song-index={index}
+        >
+          <td class="px-4 py-2 rounded-tl-lg rounded-bl-lg w-6">
+            <span class="group-hover:hidden">{index + 1}</span>
+            <button class="hidden group-hover:block play-song-btn">
+              <svg
+                role="img"
+                height="16"
+                width="16"
+                aria-hidden="true"
+                viewBox="0 0 16 16"
+                fill="currentColor"
+              >
+                <path d="M3 1.713a.7.7 0 0 1 1.05-.607l10.89 6.288a.7.7 0 0 1 0 1.212L4.05 14.894A.7.7 0 0 1 3 14.288V1.713z" />
+              </svg>
+            </button>
+          </td>
           <td class="px-4 py-2 flex gap-3">
             <picture>
-              <img
-                src={song.image}
-                alt={song.title}
-                class="w-11 h-11"
-              />
+              <img src={song.image} alt={song.title} class="w-11 h-11" />
             </picture>
             <div class="flex flex-col">
               <h3 class="text-white text-base font-normal">{song.title}</h3>
@@ -46,3 +57,36 @@ const { songs } = Astro.props;
     }
   </tbody>
 </table>
+
+<script>
+  import { usePlayerStore } from "@/store/playerStore";
+
+  document.addEventListener("astro:page-load", () => {
+    const { setIsPlaying, setCurrentMusic } = usePlayerStore.getState();
+    const rows = document.querySelectorAll("tbody tr[data-song-index]");
+
+    rows.forEach((row) => {
+      row.addEventListener("click", async (e) => {
+        const songIndex = parseInt(row.getAttribute("data-song-index"));
+        const playlistId = window.location.pathname.split("/").pop();
+
+        try {
+          const response = await fetch(
+            `/api/get-info-playlist.json?id=${playlistId}`
+          );
+          const data = await response.json();
+          const { songs, playlist } = data;
+
+          setIsPlaying(true);
+          setCurrentMusic({
+            songs,
+            playlist,
+            song: songs[songIndex],
+          });
+        } catch (error) {
+          console.error("Error loading song:", error);
+        }
+      });
+    });
+  });
+</script>

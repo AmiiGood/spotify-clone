@@ -199,7 +199,7 @@ export const songs: Song[] = [
   {
     id: 4,
     albumId: 3,
-    title: "JavaScript is the way",
+    title: "Just Js",
     image: `https://f4.bcbits.com/img/a1435058381_65.jpg`,
     artists: ["Tenno"],
     album: "Study Session",
@@ -208,7 +208,7 @@ export const songs: Song[] = [
   {
     id: 5,
     albumId: 3,
-    title: "No more TypeScript for me",
+    title: "More TypeScript",
     image: `https://f4.bcbits.com/img/a1435058381_65.jpg`,
     artists: ["Tenno"],
     album: "Study Session",
@@ -244,7 +244,7 @@ export const songs: Song[] = [
   {
     id: 4,
     albumId: 4,
-    title: "JavaScript is the way",
+    title: "Just Js",
     image: "https://f4.bcbits.com/img/a1962013209_16.jpg",
     artists: ["Tenno"],
     album: "Study Session",
@@ -253,7 +253,7 @@ export const songs: Song[] = [
   {
     id: 5,
     albumId: 4,
-    title: "No more TypeScript for me",
+    title: "More TypeScript",
     image: "https://f4.bcbits.com/img/a1962013209_16.jpg",
     artists: ["Tenno"],
     album: "Study Session",
