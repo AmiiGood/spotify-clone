@@ -11,15 +11,45 @@ import {
 import { PlayerControls } from "./PlayerControls";
 
 const CurrentSong = ({ image, title, artists }) => {
+  const hasValidImage = image && image !== "/favicon.svg";
+
   return (
-    <div className="flex items-center gap-5 relative overflow-hidden">
-      <picture className="w-16 h-16 bg-zinc-800 rounded-md shadow-lg overflow-hidden">
-        <img src={image} alt={title} />
+    <div className="flex items-center gap-5 relative overflow-hidden w-full min-w-0">
+      <picture className="w-16 h-16 bg-zinc-800 rounded-md shadow-lg overflow-hidden flex-shrink-0">
+        {hasValidImage ? (
+          <img
+            src={image}
+            alt={title}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              e.currentTarget.src = "/favicon.svg";
+            }}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-zinc-700 to-zinc-900">
+            <svg
+              role="img"
+              height="24"
+              width="24"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="text-zinc-600"
+            >
+              <path d="M6 3h15v15.167a3.5 3.5 0 1 1-3.5-3.5H19V5H8v13.167a3.5 3.5 0 1 1-3.5-3.5H6V3zm0 13.667H4.5a1.5 1.5 0 1 0 1.5 1.5v-1.5zm13 0h-1.5a1.5 1.5 0 1 0 1.5 1.5v-1.5z"></path>
+            </svg>
+          </div>
+        )}
       </picture>
 
-      <div className="flex flex-col">
-        <h3 className="font-semibold text-sm block">{title}</h3>
-        <span className="text-xs opacity-80">{artists?.join(", ")}</span>
+      <div className="flex flex-col min-w-0 flex-1">
+        <h3 className="font-semibold text-sm block truncate">
+          {title || "Selecciona una canción"}
+        </h3>
+        {artists && artists.length > 0 && artists[0] && (
+          <span className="text-xs opacity-80 truncate">
+            {artists.join(", ")}
+          </span>
+        )}
       </div>
     </div>
   );
@@ -189,10 +219,10 @@ export function Player() {
     const audio = audioRef.current;
 
     if (song && audio) {
-      const src = `/music/${playlist?.id}/0${song.id}.mp3`;
+      const src = song.externalUrl || `/music/${playlist?.id}/0${song.id}.mp3`;
 
       const currentSrc = audio.src;
-      const newSrc = window.location.origin + src;
+      const newSrc = song.externalUrl || window.location.origin + src;
 
       if (currentSrc !== newSrc) {
         audio.src = src;
@@ -219,7 +249,7 @@ export function Player() {
 
   return (
     <div className="flex flex-row justify-between w-full px-1 z-50">
-      <div className="w-50">
+      <div className="w-[30%] min-w-45">
         <CurrentSong {...currentMusic.song} />
       </div>
 

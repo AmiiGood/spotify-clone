@@ -1,0 +1,254 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import SearchIcon from "@/icons/Search.astro";
+
+const categories = [
+  {
+    name: "Electrónica",
+    tag: "electronic",
+    color: "bg-fuchsia-700",
+  },
+  {
+    name: "Rock",
+    tag: "rock",
+    color: "bg-red-700",
+  },
+  {
+    name: "Chill & Relax",
+    tag: "chillout",
+    color: "bg-cyan-600",
+  },
+  {
+    name: "Hip Hop",
+    tag: "hiphop",
+    color: "bg-yellow-700",
+  },
+  {
+    name: "Jazz",
+    tag: "jazz",
+    color: "bg-amber-700",
+  },
+  {
+    name: "Pop",
+    tag: "pop",
+    color: "bg-indigo-600",
+  },
+  {
+    name: "Indie",
+    tag: "indie",
+    color: "bg-lime-700",
+  },
+  {
+    name: "Clásica",
+    tag: "classical",
+    color: "bg-purple-800",
+  },
+  {
+    name: "Ambient",
+    tag: "ambient",
+    color: "bg-blue-700",
+  },
+  {
+    name: "World Music",
+    tag: "world",
+    color: "bg-orange-700",
+  },
+];
+---
+
+<Layout>
+  <div class="relative flex flex-col h-full bg-zinc-900 overflow-y-auto">
+    <div class="p-6">
+      <!-- Barra de búsqueda -->
+      <div class="relative max-w-md mb-8">
+        <div
+          class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-gray-900"
+        >
+          <SearchIcon />
+        </div>
+        <input
+          type="search"
+          id="search-input"
+          placeholder="¿Qué quieres escuchar?"
+          class="w-full pl-12 pr-4 py-3 rounded-full bg-white text-black placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-white font-medium"
+          autocomplete="off"
+        />
+      </div>
+
+      <div id="search-results" class="hidden">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-2xl font-bold" id="results-title">
+            Resultados de búsqueda
+          </h2>
+          <button
+            id="back-btn"
+            class="text-sm text-gray-400 hover:text-white transition"
+          >
+            ← Volver
+          </button>
+        </div>
+        <div
+          id="results-grid"
+          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+        >
+          <!-- Resultados aquí -->
+        </div>
+      </div>
+
+      <!-- Explorar todo -->
+      <div id="categories-section">
+        <h1 class="text-3xl font-bold mb-6">Explorar todo</h1>
+
+        <div
+          class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
+        >
+          {
+            categories.map((category) => (
+              <button
+                class={`relative overflow-hidden rounded-lg ${category.color} aspect-square hover:scale-105 transition-transform category-card group`}
+                data-tag={category.tag}
+                data-name={category.name}
+              >
+                <div class="p-4 h-full flex flex-col justify-between">
+                  <h3 class="text-2xl font-bold text-white relative z-10 text-left">
+                    {category.name}
+                  </h3>
+                </div>
+                <div class="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity" />
+              </button>
+            ))
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import {
+    searchTracks,
+    getTracksByTag,
+    convertJamendoToSong,
+    type JamendoTrack,
+  } from "@/lib/jamendo";
+  import { usePlayerStore } from "@/store/playerStore";
+
+  document.addEventListener("astro:page-load", () => {
+    const searchInput = document.getElementById(
+      "search-input"
+    ) as HTMLInputElement;
+    const searchResults = document.getElementById("search-results");
+    const resultsGrid = document.getElementById("results-grid");
+    const categoriesSection = document.getElementById("categories-section");
+    const resultsTitle = document.getElementById("results-title");
+    const backBtn = document.getElementById("back-btn");
+
+    let timeout: NodeJS.Timeout;
+
+    backBtn?.addEventListener("click", () => {
+      searchResults?.classList.add("hidden");
+      categoriesSection?.classList.remove("hidden");
+      searchInput.value = "";
+    });
+
+    searchInput?.addEventListener("input", (e) => {
+      clearTimeout(timeout);
+      const query = (e.target as HTMLInputElement).value.trim();
+
+      if (query.length < 2) {
+        searchResults?.classList.add("hidden");
+        categoriesSection?.classList.remove("hidden");
+        return;
+      }
+
+      timeout = setTimeout(async () => {
+        const tracks = await searchTracks(query);
+        displayResults(tracks, `Resultados para "${query}"`);
+      }, 500);
+    });
+
+    document.querySelectorAll(".category-card").forEach((btn) => {
+      btn.addEventListener("click", async (e) => {
+        const button = e.currentTarget as HTMLElement;
+        const tag = button.getAttribute("data-tag")!;
+        const name = button.getAttribute("data-name")!;
+
+        searchResults?.classList.remove("hidden");
+        categoriesSection?.classList.add("hidden");
+
+        resultsGrid!.innerHTML =
+          '<div class="col-span-full text-center py-8"><div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div></div>';
+
+        const tracks = await getTracksByTag(tag);
+        displayResults(tracks, name);
+      });
+    });
+
+    function displayResults(tracks: JamendoTrack[], title: string) {
+      if (tracks.length > 0) {
+        searchResults?.classList.remove("hidden");
+        categoriesSection?.classList.add("hidden");
+
+        if (resultsTitle) resultsTitle.textContent = title;
+
+        resultsGrid!.innerHTML = tracks
+          .map(
+            (track) => `
+          <div class="bg-zinc-800 p-4 rounded-lg hover:bg-zinc-700 transition cursor-pointer group track-card"
+               data-track='${JSON.stringify(track).replace(/'/g, "&#39;")}'>
+            <div class="relative mb-4">
+              <img src="${track.album_image}" alt="${track.name}" class="w-full aspect-square object-cover rounded" />
+              <button class="play-btn absolute bottom-2 right-2 bg-green-500 rounded-full p-3 opacity-0 group-hover:opacity-100 transition-all shadow-lg hover:scale-105">
+                <svg role="img" height="16" width="16" viewBox="0 0 16 16" fill="black">
+                  <path d="M3 1.713a.7.7 0 0 1 1.05-.607l10.89 6.288a.7.7 0 0 1 0 1.212L4.05 14.894A.7.7 0 0 1 3 14.288V1.713z"></path>
+                </svg>
+              </button>
+            </div>
+            <h3 class="font-bold truncate mb-1">${track.name}</h3>
+            <p class="text-sm text-gray-400 truncate">${track.artist_name}</p>
+          </div>
+        `
+          )
+          .join("");
+
+        attachPlayListeners();
+      } else {
+        resultsGrid!.innerHTML = `
+          <div class="col-span-full text-center py-12">
+            <p class="text-gray-400 text-lg">No se encontraron resultados para "${title}"</p>
+          </div>
+        `;
+      }
+    }
+
+    function attachPlayListeners() {
+      document.querySelectorAll(".track-card").forEach((el) => {
+        el.addEventListener("click", (e) => {
+          const target = e.currentTarget as HTMLElement;
+          const trackData: JamendoTrack = JSON.parse(
+            target.getAttribute("data-track")!
+          );
+
+          const { setIsPlaying, setCurrentMusic } = usePlayerStore.getState();
+
+          const song = convertJamendoToSong(trackData, 0);
+
+          setCurrentMusic({
+            playlist: {
+              id: "jamendo",
+              albumId: 999,
+              title: "Jamendo Music",
+              color: { accent: "#21c872", dark: "#14532d" },
+              cover: trackData.album_image,
+              artists: [trackData.artist_name],
+            },
+            song: song,
+            songs: [song],
+          });
+
+          setIsPlaying(true);
+        });
+      });
+    }
+  });
+</script>

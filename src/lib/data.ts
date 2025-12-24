@@ -76,6 +76,7 @@ export interface Song {
   artists: string[];
   album: string;
   duration: string;
+  externalUrl?: string;
 }
 
 export const songs: Song[] = [
